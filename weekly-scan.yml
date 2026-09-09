@@ -1,0 +1,64 @@
+name: Weekly institutional accumulation scan
+
+on:
+  schedule:
+    # Saturday 12:00 UTC — after Friday's US close, so the data is complete.
+    - cron: "0 12 * * 6"
+  workflow_dispatch:        # also runnable by hand from the Actions tab
+
+permissions:
+  contents: write           # needed to commit the results back
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the screen
+        id: scan
+        # Yahoo throttles datacentre IPs, so use a smaller batch and a longer
+        # pause than the interactive default, and retry the whole run once.
+        run: |
+          python institutional_screener.py \
+            --universe broad --batch 40 --outdir output \
+          || (echo "first attempt failed, waiting 120s and retrying" && sleep 120 && \
+              python institutional_screener.py \
+                --universe broad --batch 25 --outdir output)
+
+      - name: Build the week-over-week digest
+        run: python make_digest.py
+
+      - name: Publish the report
+        run: |
+          mkdir -p latest
+          cp output/institutional_screener.html latest/institutional_screener.html
+          cp output/screen_results.json latest/screen_results.json || true
+
+      - name: Commit results
+        run: |
+          git config user.name  "screener-bot"
+          git config user.email "screener-bot@users.noreply.github.com"
+          git add latest history
+          git diff --staged --quiet || git commit -m "Weekly scan $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Upload as an artifact too
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-${{ github.run_number }}
+          path: |
+            output/screen_results.csv
+            output/institutional_screener.html
+            latest/weekly_digest.md
+          retention-days: 90

@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Institutional Accumulation Screener</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plane:#f9f9f7; --surface:#fcfcfb; --raised:#ffffff;
+    --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+    --rule:#e1e0d9; --ring:rgba(11,11,11,.10);
+    --acc:#2a78d6; --acc-soft:#cde2fb; --acc-mid:#86b6ef;
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+    --good-ink:#006300; --crit-ink:#a32222;
+    --wash:rgba(11,11,11,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --plane:#0d0d0d; --surface:#1a1a19; --raised:#222221;
+      --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+      --rule:#2c2c2a; --ring:rgba(255,255,255,.10);
+      --acc:#3987e5; --acc-soft:#184f95; --acc-mid:#256abf;
+      --good-ink:#0ca30c; --crit-ink:#e66767;
+      --wash:rgba(255,255,255,.05);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --raised:#222221;
+    --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+    --rule:#2c2c2a; --ring:rgba(255,255,255,.10);
+    --acc:#3987e5; --acc-soft:#184f95; --acc-mid:#256abf;
+    --good-ink:#0ca30c; --crit-ink:#e66767;
+    --wash:rgba(255,255,255,.05);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:var(--plane); color:var(--ink);
+    font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1280px; margin:0 auto; padding:28px 20px 80px; }
+
+  header.top { display:flex; justify-content:space-between; align-items:flex-start;
+    gap:20px; flex-wrap:wrap; margin-bottom:22px; }
+  h1 { font-size:22px; letter-spacing:-.01em; margin:0 0 4px; font-weight:650; }
+  .sub { color:var(--ink-2); font-size:13px; margin:0; }
+  .sub b { color:var(--ink); font-weight:600; }
+  .themebtn { background:var(--surface); border:1px solid var(--rule); color:var(--ink-2);
+    border-radius:8px; padding:7px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
+  .themebtn:hover { background:var(--wash); }
+
+  /* ---- market health ---- */
+  .health { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:12px; margin-bottom:14px; }
+  .tile { background:var(--surface); border:1px solid var(--rule); border-radius:12px;
+    padding:14px 16px; display:flex; gap:14px; align-items:center; }
+  .dot { width:10px; height:10px; border-radius:50%; flex:0 0 auto; }
+  .tile .big { font-size:26px; font-weight:650; line-height:1.1; }
+  .tile .lbl { font-size:12px; color:var(--ink-3); text-transform:uppercase;
+    letter-spacing:.05em; }
+  .tile .note { font-size:12.5px; color:var(--ink-2); }
+  .s-good{color:var(--good-ink)} .s-warn{color:var(--serious)} .s-crit{color:var(--crit-ink)}
+  .bg-good{background:var(--good)} .bg-warn{background:var(--warn)} .bg-crit{background:var(--crit)}
+
+  .warn { background:var(--surface); border:1px solid var(--rule);
+    border-left:3px solid var(--warn); border-radius:12px; padding:13px 16px;
+    margin-bottom:14px; font-size:12.5px; color:var(--ink-2); line-height:1.55; }
+  .warn b { color:var(--ink); }
+  details.about { background:var(--surface); border:1px solid var(--rule);
+    border-radius:12px; padding:0 16px; margin-bottom:18px; }
+  details.about summary { cursor:pointer; padding:13px 0; font-weight:600; font-size:13.5px;
+    list-style:none; display:flex; align-items:center; gap:8px; }
+  details.about summary::-webkit-details-marker { display:none; }
+  details.about summary::before { content:"›"; display:inline-block; transition:transform .15s;
+    color:var(--ink-3); font-size:17px; }
+  details.about[open] summary::before { transform:rotate(90deg); }
+  .about-body { padding:2px 0 16px; color:var(--ink-2); font-size:13px; max-width:78ch; }
+  .about-body dt { font-weight:600; color:var(--ink); margin-top:11px; }
+  .about-body dd { margin:2px 0 0; }
+  .about-body dl { margin:0; }
+
+  /* ---- controls ---- */
+  .controls { display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    margin-bottom:14px; }
+  input[type=search], select {
+    background:var(--surface); border:1px solid var(--rule); color:var(--ink);
+    border-radius:8px; padding:8px 10px; font:inherit; font-size:13px; }
+  input[type=search] { min-width:190px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { background:var(--surface); border:1px solid var(--rule); color:var(--ink-2);
+    border-radius:999px; padding:7px 13px; font-size:12.5px; cursor:pointer;
+    white-space:nowrap; }
+  .chip[aria-pressed="true"] { background:var(--acc); border-color:var(--acc);
+    color:#fff; font-weight:600; }
+  .count { margin-left:auto; color:var(--ink-3); font-size:12.5px;
+    font-variant-numeric:tabular-nums; }
+
+  /* ---- table ---- */
+  .tablecard { background:var(--surface); border:1px solid var(--rule);
+    border-radius:12px; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  thead th { position:sticky; top:0; background:var(--surface); z-index:2;
+    text-align:right; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600; padding:11px 10px; white-space:nowrap;
+    border-bottom:1px solid var(--rule); cursor:pointer; user-select:none; }
+  thead th:first-child, thead th.l { text-align:left; }
+  thead th:hover { color:var(--ink); }
+  thead th .arw { opacity:.45; font-size:9px; }
+  tbody td { padding:9px 10px; text-align:right; border-bottom:1px solid var(--rule);
+    white-space:nowrap; }
+  tbody td.l { text-align:left; }
+  tbody tr.row { cursor:pointer; }
+  tbody tr.row:hover { background:var(--wash); }
+  .tk { font-weight:650; letter-spacing:-.01em; }
+  .nm { color:var(--ink-3); font-size:12px; max-width:220px; overflow:hidden;
+    text-overflow:ellipsis; display:block; }
+  .scorecell { display:flex; align-items:center; gap:9px; justify-content:flex-end; }
+  .bar { width:58px; height:7px; background:var(--wash); border-radius:4px;
+    overflow:hidden; flex:0 0 auto; }
+  .bar > i { display:block; height:100%; background:var(--acc); border-radius:4px; }
+  .scoreval { font-weight:650; min-width:34px; text-align:right; }
+  .strip { display:inline-flex; gap:2px; }
+  .cell { width:15px; height:17px; border-radius:3px; background:var(--wash);
+    color:var(--ink-3); font-size:9.5px; font-weight:700; line-height:17px;
+    text-align:center; }
+  .cell.a { background:var(--good); color:#fff; }
+  .cell.d { background:var(--crit); color:#fff; }
+  .pill { font-size:11px; padding:3px 8px; border-radius:999px; font-weight:600;
+    border:1px solid var(--ring); }
+  .pos { color:var(--good-ink); } .neg { color:var(--crit-ink); }
+
+  /* ---- detail ---- */
+  tr.detail > td { padding:0; border-bottom:1px solid var(--rule); }
+  .panel { padding:18px 20px 22px; background:var(--plane); display:grid;
+    grid-template-columns:minmax(300px,1.1fr) minmax(300px,1fr); gap:26px 40px;
+    text-align:left; align-items:start; white-space:normal; }
+  .panel h4 { margin:0 0 12px; font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-3); font-weight:600; }
+  .comp { display:grid; grid-template-columns:1fr auto; gap:5px 12px;
+    align-items:baseline; font-size:12.5px; }
+  .comp .lab { color:var(--ink-2); text-align:left; }
+  .comp .track { grid-column:1/-1; height:6px; background:var(--wash);
+    border-radius:3px; margin:-2px 0 7px; overflow:hidden; }
+  .comp .track > i { display:block; height:100%; background:var(--acc-mid);
+    border-radius:3px; }
+  .comp .val { font-weight:600; font-variant-numeric:tabular-nums; }
+  .wk { display:flex; gap:4px; align-items:flex-end; height:78px;
+    padding-bottom:2px; }
+  .wk .col { flex:1; display:flex; flex-direction:column; align-items:center;
+    gap:4px; justify-content:flex-end; }
+  .wk .mark { width:100%; border-radius:3px 3px 0 0; background:var(--acc-mid);
+    min-height:3px; }
+  .wk .mark.a { background:var(--good); } .wk .mark.d { background:var(--crit); }
+  .tick { font-size:10.5px; color:var(--ink-3); line-height:1.45; }
+  .wk .tick { font-size:9.5px; }
+  .verdict { margin-top:14px; font-size:13px; color:var(--ink-2);
+    border-left:2px solid var(--acc); padding-left:11px; }
+  .kv { display:grid; grid-template-columns:1fr auto; gap:5px 20px; font-size:12.5px;
+    margin:16px 0 0; }
+  .kv dt { color:var(--ink-2); }
+  .kv dd { margin:0; font-variant-numeric:tabular-nums; font-weight:600;
+    text-align:right; }
+  .kv dt, .kv dd { padding-bottom:5px; border-bottom:1px solid var(--rule); }
+  footer { margin-top:22px; color:var(--ink-3); font-size:12px; max-width:80ch; }
+  .empty { padding:44px; text-align:center; color:var(--ink-3); }
+  @media (max-width:820px) { .panel { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>Institutional Accumulation Screener</h1>
+    <p class="sub">Reading price range and volume for institutional footprints &middot;
+      <b id="uni"></b> &middot; generated <b id="gen"></b></p>
+  </div>
+  <button class="themebtn" id="theme">Toggle theme</button>
+</header>
+
+<section class="health" id="health"></section>
+
+<details class="about">
+  <summary>How the score is built</summary>
+  <div class="about-body">
+    <p style="margin-top:0">Institutions are too big to hide. Their buying and selling
+    leaves a signature in a stock's <b>trading range</b> and <b>volume</b>. Six components,
+    100 points total:</p>
+    <dl>
+      <dt>Up/down volume ratio, 50 days &mdash; 30 pts</dt>
+      <dd>Volume on up days divided by volume on down days. Above 2.0 is strong
+      accumulation, 1.0 is churn, below 1.0 points to heavier selling.</dd>
+      <dt>Weekly range + volume &mdash; 25 pts</dt>
+      <dd>Every one of the last eight weeks contributes where it closed in its own
+      range, weighted by how heavy its volume was (the <b>weekly pressure</b> figure,
+      running &minus;2 to +2). Weeks clearing the thresholds outright are marked
+      <b>A</b> or <b>D</b> in the table, and consecutive A weeks earn a bonus &mdash;
+      the pattern repeating is the signal, not any single week.</dd>
+      <dt>A/D line slope, 25 days &mdash; 20 pts</dt>
+      <dd>The classic Accumulation/Distribution line, its slope normalized by average
+      volume so stocks of different size compare.</dd>
+      <dt>Pullback volume drying &mdash; 10 pts</dt>
+      <dd>When a stock pulls back on <i>lighter</i> volume, institutions are taking a
+      break from buying rather than selling. Scored against the field's own spread, so
+      the median name lands mid-scale.</dd>
+      <dt>Volume expansion &mdash; 5 pts</dt>
+      <dd>50-day average volume against the 200-day. No footprints, no institutions.</dd>
+      <dt>Trend / support &mdash; 10 pts</dt>
+      <dd>How far price sits above its 50- and 200-day averages and below its 52-week
+      high &mdash; measured continuously, not as pass/fail. Accumulation only counts if
+      the support floor is holding, but a stock 0.1% above its 50-day has not earned what
+      one 20% above has.</dd>
+    </dl>
+    <p><b>Distribution days</b> (the market tiles above, and the DD column) count sessions
+    closing lower on higher volume than the day before. The indexes use the article's
+    literal 0.2%; individual stocks use the same rule expressed in their own volatility
+    (0.22 sigma), because a 0.2% down day is a real event for an index and noise for a
+    single stock. A few is noise; many in a short period is an early warning that
+    institutions are stepping back.</p>
+
+    <h4 style="margin:18px 0 6px;font-size:13.5px">Two things worth understanding before you sort by score</h4>
+
+    <p><b>Bands are relative to this scan, not absolute.</b> "Strong Accumulation" means
+    the top 5% of what was screened; Accumulation the next 15%; the middle 40% Neutral;
+    then 25% Distribution and the bottom 15% Heavy Distribution. Fixed score cutoffs
+    sound more objective and are in practice worse &mdash; the first version of this tool
+    used them and labelled the median stock "Distribution" in a market where two thirds
+    of names were above their 200-day average.</p>
+
+    <p><b>Ex-momentum is the column to read second.</b> The composite score correlates
+    heavily with recent price performance, partly by construction: a stock that rose
+    necessarily had more up days, and up days carry the volume. Ex-momentum is what is
+    left after the 63-day return is regressed out of the score &mdash; a positive figure
+    means more institutional footprint than this stock's own price action would predict.
+    Sorting by score finds what has already worked. Sorting by ex-momentum finds what
+    may not have shown up in the price yet, which is the harder and more useful question.</p>
+
+    <p><b>Sect %ile ranks a name inside its own sector.</b> A single ranking of the whole
+    market hands you whichever sector the macro currently favours &mdash; four refiners in
+    the top fourteen is one bet on crack spreads, not four independent institutional
+    decisions. Sorting by Sect %ile, or capping the list with <b>Best N per sector</b>,
+    answers the more useful question: is money moving into this name relative to the
+    other places it could sit within the same sector? The cap applies after sorting, so
+    it works on the ex-momentum ordering too.</p>
+
+    <p><b>The Article column is a second, independent ranking.</b> It scores each name
+    using only the tests the article itself names &mdash; up/down volume ratio, consecutive
+    heavy-volume closes high in the weekly range, pullbacks on lighter volume, a holding
+    support floor, few distribution days &mdash; with none of this tool's own additions.
+    It also rewards a stock that has <i>already run</i>, because the article's worked
+    example was up 500% on the year and still being accumulated. Where the two columns
+    agree, the case is strong on both readings. Where they disagree, the disagreement is
+    the interesting part: a high Article score with a low composite usually means an
+    A/D line that is not confirming, and the reverse usually means a beaten-down name
+    that the article's momentum-continuation framing would never have picked.</p>
+
+    <p>A dot beside a signal means the name was <b>capped by the A/D gate</b>: it scored
+    into an accumulation band while its Accumulation/Distribution line was falling, or
+    with up/down volume below 1.0. Those two conditions contradict the label, so it is
+    downgraded to Neutral rather than presented as a buy candidate.</p>
+  </div>
+</details>
+
+<div class="controls">
+  <input type="search" id="q" placeholder="Ticker or company" aria-label="Search">
+  <div class="chips" id="chips"></div>
+  <select id="sector" aria-label="Sector"></select>
+  <select id="persector" aria-label="Limit per sector">
+    <option value="0">All names</option>
+    <option value="1">Best 1 per sector</option>
+    <option value="2">Best 2 per sector</option>
+    <option value="3">Best 3 per sector</option>
+    <option value="5">Best 5 per sector</option>
+  </select>
+  <select id="persub" aria-label="Limit per sub-industry">
+    <option value="0">All sub-industries</option>
+    <option value="1">Best 1 per sub-industry</option>
+    <option value="2">Best 2 per sub-industry</option>
+  </select>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="tablecard">
+  <table id="tbl">
+    <thead><tr>
+      <th class="l" data-k="rank">#<span class="arw"></span></th>
+      <th class="l" data-k="ticker">Stock<span class="arw"></span></th>
+      <th data-k="score">Score<span class="arw"></span></th>
+      <th data-k="classification">Signal<span class="arw"></span></th>
+      <th data-k="ex_mom" title="Score minus what the 63-day return alone predicts">Ex-mom<span class="arw"></span></th>
+      <th data-k="art_score" title="Scored only on the tests the article itself names">Article<span class="arw"></span></th>
+      <th data-k="ud_ratio">U/D vol<span class="arw"></span></th>
+      <th class="l" data-k="acc_weeks">8-week pattern<span class="arw"></span></th>
+      <th data-k="ad_slope">A/D slope<span class="arw"></span></th>
+      <th data-k="dist_days">DD<span class="arw"></span></th>
+      <th data-k="price">Price<span class="arw"></span></th>
+      <th data-k="pct_off_high">Off high<span class="arw"></span></th>
+      <th data-k="sector_pctile" title="Percentile within its own sector">Sect %ile<span class="arw"></span></th>
+    </tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+  <div class="empty" id="empty" hidden>Nothing matches those filters.</div>
+</div>
+
+<footer>
+  Educational tool, not investment advice. Signals describe what price and volume have
+  already done; they do not predict what a stock will do next. Sort order is the composite
+  score &mdash; always read the component breakdown before acting on a rank.
+</footer>
+</div>
+
+<script>
+const DATA = {"generated": "SAMPLE \u2014 synthetic data, not a live scan", "universe": "SAMPLE", "count": 36, "scanned": 36, "params": {"ud_window": 50, "week_lookback": 8, "dist_day_window": 25, "dist_day_sigma": 0.22, "min_price": 0, "min_dollar_vol": 0}, "fit": {"slope": 88.37050193050193, "intercept": -1.4431746031746033, "r2": 0.598, "n": 36}, "gated": 0, "sectors": {"sectors": {"Energy": {"n": 6, "median": 85.0, "top": 98.5}, "Industrials": {"n": 4, "median": 60.1, "top": 96.0}, "Financials": {"n": 5, "median": 10.8, "top": 79.5}, "Health Care": {"n": 5, "median": 29.9, "top": 75.8}, "Consumer Discretionary": {"n": 6, "median": 23.2, "top": 70.8}, "Materials": {"n": 6, "median": 30.7, "top": 59.0}, "Information Technology": {"n": 3, "median": 44.0, "top": 69.9}, "Communication Services": {"n": 1, "median": 4.1, "top": 4.1}}, "concentration": [{"sector": "Energy", "got": 6, "expected": 2.0, "ratio": 3.0, "tickers": ["SYN02", "SYN08", "SYN07", "SYN01", "SYN04", "SYN05"]}], "sub_concentration": [{"sub_industry": "Oil & Gas Refining", "got": 4, "expected": 1.3, "tickers": ["SYN02", "SYN08", "SYN07", "SYN04"]}], "top_n": 12}, "health": [{"label": "S&P 500", "count": 2, "state": "good", "note": "Institutions are not exiting.", "last": 0, "chg": 0}, {"label": "Nasdaq Composite", "count": 5, "state": "critical", "note": "Heavy selling. Be defensive.", "last": 0, "chg": 0}], "rows": [{"ticker": "SYN02", "name": "Synthetic Holdings 02 (sample data)", "sector": "Energy", "sub_industry": "Oil & Gas Refining", "price": 681.2996437991546, "avg_dollar_vol": 5199988273.424904, "ud_ratio": 4.558228809569589, "acc_weeks": 6, "dist_weeks": 1, "acc_streak": 5, "week_pressure": 0.6365694303039431, "ad_slope": 0.6900843323454834, "pullback_dryness": 0.7146050186511772, "vol_expansion": 1.2993671676344665, "dist_days": 1, "pct_vs_50dma": 0.08214638622363002, "pct_vs_200dma": 0.1973222571255444, "pct_off_high": -0.003884854545552985, "ret_63d": 0.16945429714775928, "score": 98.5, "art_score": 100.0, "art_rank": 0, "ex_mom": 14.0, "pctile": 97.1, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 30.0, "Weekly range + volume": 25.0, "A/D line slope (25d)": 20.0, "Pullback volume drying": 9.18, "Volume expansion": 4.99, "Trend / support": 9.32}, "classification": "Strong Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.771}, {"week": "May 29", "kind": "-", "pos": 0.32}, {"week": "Jun 05", "kind": "D", "pos": 0.368}, {"week": "Jun 12", "kind": "A", "pos": 0.956}, {"week": "Jun 19", "kind": "A", "pos": 0.827}, {"week": "Jun 26", "kind": "A", "pos": 0.882}, {"week": "Jul 03", "kind": "A", "pos": 0.941}, {"week": "Jul 10", "kind": "A", "pos": 0.829}], "rank": 1}, {"ticker": "SYN08", "name": "Synthetic Holdings 08 (sample data)", "sector": "Energy", "sub_industry": "Oil & Gas Refining", "price": 194.1947231208332, "avg_dollar_vol": 806013634.003217, "ud_ratio": 4.0317318530994415, "acc_weeks": 8, "dist_weeks": 0, "acc_streak": 8, "week_pressure": 0.7855697911931854, "ad_slope": 0.657333139181305, "pullback_dryness": 0.733059436470177, "vol_expansion": 1.2726625273073922, "dist_days": 1, "pct_vs_50dma": 0.16042414842600605, "pct_vs_200dma": 0.3148756883633448, "pct_off_high": 0.0, "ret_63d": 0.27633428301045493, "score": 98.5, "art_score": 100.0, "art_rank": 0, "ex_mom": 11.6, "pctile": 100.0, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 30.0, "Weekly range + volume": 25.0, "A/D line slope (25d)": 20.0, "Pullback volume drying": 8.74, "Volume expansion": 4.73, "Trend / support": 10.0}, "classification": "Strong Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.793}, {"week": "May 29", "kind": "A", "pos": 0.769}, {"week": "Jun 05", "kind": "A", "pos": 0.674}, {"week": "Jun 12", "kind": "A", "pos": 0.619}, {"week": "Jun 19", "kind": "A", "pos": 0.956}, {"week": "Jun 26", "kind": "A", "pos": 0.702}, {"week": "Jul 03", "kind": "A", "pos": 0.938}, {"week": "Jul 10", "kind": "A", "pos": 0.989}], "rank": 2}, {"ticker": "SYN06", "name": "Synthetic Holdings 06 (sample data)", "sector": "Industrials", "sub_industry": "Industrials Products", "price": 633.2103385397653, "avg_dollar_vol": 6312116407.432091, "ud_ratio": 2.4771017385331096, "acc_weeks": 5, "dist_weeks": 0, "acc_streak": 4, "week_pressure": 0.7161967646983763, "ad_slope": 0.5910573319498343, "pullback_dryness": 0.6896564088638264, "vol_expansion": 1.20343792936771, "dist_days": 3, "pct_vs_50dma": 0.011840980749725505, "pct_vs_200dma": 0.18364414808495177, "pct_off_high": -0.059177022501374354, "ret_63d": 0.14638461131828895, "score": 96.0, "art_score": 96.1, "art_rank": 0, "ex_mom": 14.0, "pctile": 94.3, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 29.78, "Weekly range + volume": 25.0, "A/D line slope (25d)": 20.0, "Pullback volume drying": 9.77, "Volume expansion": 4.03, "Trend / support": 7.38}, "classification": "Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.907}, {"week": "May 29", "kind": "A", "pos": 0.91}, {"week": "Jun 05", "kind": "A", "pos": 0.815}, {"week": "Jun 12", "kind": "A", "pos": 0.892}, {"week": "Jun 19", "kind": "-", "pos": 0.166}, {"week": "Jun 26", "kind": "-", "pos": 0.868}, {"week": "Jul 03", "kind": "A", "pos": 0.897}, {"week": "Jul 10", "kind": "-", "pos": 0.783}], "rank": 3}, {"ticker": "SYN03", "name": "Synthetic Holdings 03 (sample data)", "sector": "Industrials", "sub_industry": "Industrials Products", "price": 237.52745746511286, "avg_dollar_vol": 1040137683.2147976, "ud_ratio": 2.141358142481255, "acc_weeks": 5, "dist_weeks": 2, "acc_streak": 2, "week_pressure": 0.33904889102527014, "ad_slope": 0.7150983092532367, "pullback_dryness": 0.6911232237999371, "vol_expansion": 1.1930750986248273, "dist_days": 0, "pct_vs_50dma": 0.01225050642706571, "pct_vs_200dma": 0.06917442075321167, "pct_off_high": -0.03377095152255416, "ret_63d": 0.054533674689943634, "score": 85.8, "art_score": 83.5, "art_rank": 0, "ex_mom": 23.4, "pctile": 91.4, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 26.35, "Weekly range + volume": 19.11, "A/D line slope (25d)": 20.0, "Pullback volume drying": 9.74, "Volume expansion": 3.93, "Trend / support": 6.64}, "classification": "Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.687}, {"week": "May 29", "kind": "A", "pos": 0.891}, {"week": "Jun 05", "kind": "-", "pos": 0.196}, {"week": "Jun 12", "kind": "D", "pos": 0.373}, {"week": "Jun 19", "kind": "A", "pos": 0.958}, {"week": "Jun 26", "kind": "D", "pos": 0.288}, {"week": "Jul 03", "kind": "A", "pos": 0.635}, {"week": "Jul 10", "kind": "A", "pos": 0.818}], "rank": 4}, {"ticker": "SYN07", "name": "Synthetic Holdings 07 (sample data)", "sector": "Energy", "sub_industry": "Oil & Gas Refining", "price": 178.59941825136693, "avg_dollar_vol": 2035552805.5254018, "ud_ratio": 1.7931337320024838, "acc_weeks": 5, "dist_weeks": 0, "acc_streak": 3, "week_pressure": 0.45989641619308186, "ad_slope": 0.6317140045805647, "pullback_dryness": 0.7193367788815648, "vol_expansion": 1.1042127168893314, "dist_days": 3, "pct_vs_50dma": 0.020604032506636782, "pct_vs_200dma": 0.3161433884587108, "pct_off_high": -0.046697823295174024, "ret_63d": 0.1139153049341326, "score": 85.6, "art_score": 78.3, "art_rank": 0, "ex_mom": 8.5, "pctile": 88.6, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 22.17, "Weekly range + volume": 23.2, "A/D line slope (25d)": 20.0, "Pullback volume drying": 9.06, "Volume expansion": 3.04, "Trend / support": 8.08}, "classification": "Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.303}, {"week": "May 29", "kind": "A", "pos": 0.954}, {"week": "Jun 05", "kind": "A", "pos": 0.847}, {"week": "Jun 12", "kind": "-", "pos": 0.372}, {"week": "Jun 19", "kind": "A", "pos": 0.985}, {"week": "Jun 26", "kind": "A", "pos": 0.835}, {"week": "Jul 03", "kind": "A", "pos": 0.96}, {"week": "Jul 10", "kind": "-", "pos": 0.189}], "rank": 5}, {"ticker": "SYN01", "name": "Synthetic Holdings 01 (sample data)", "sector": "Energy", "sub_industry": "Oil & Gas E&P", "price": 269.1561489950397, "avg_dollar_vol": 1861772109.8000414, "ud_ratio": 1.7490087877802174, "acc_weeks": 5, "dist_weeks": 1, "acc_streak": 2, "week_pressure": 0.47094204769186093, "ad_slope": 0.6383661779804548, "pullback_dryness": 0.7145555747607891, "vol_expansion": 1.1539511455307032, "dist_days": 2, "pct_vs_50dma": 0.05511509919459723, "pct_vs_200dma": 0.16015539631950193, "pct_off_high": -0.006814801868034515, "ret_63d": 0.07577144327852658, "score": 84.5, "art_score": 76.2, "art_rank": 0, "ex_mom": 17.2, "pctile": 85.7, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 21.58, "Weekly range + volume": 21.75, "A/D line slope (25d)": 20.0, "Pullback volume drying": 9.18, "Volume expansion": 3.54, "Trend / support": 8.4}, "classification": "Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.707}, {"week": "May 29", "kind": "A", "pos": 0.898}, {"week": "Jun 05", "kind": "-", "pos": 0.511}, {"week": "Jun 12", "kind": "D", "pos": 0.268}, {"week": "Jun 19", "kind": "A", "pos": 0.941}, {"week": "Jun 26", "kind": "-", "pos": 0.413}, {"week": "Jul 03", "kind": "A", "pos": 0.784}, {"week": "Jul 10", "kind": "A", "pos": 0.847}], "rank": 6}, {"ticker": "SYN04", "name": "Synthetic Holdings 04 (sample data)", "sector": "Energy", "sub_industry": "Oil & Gas Refining", "price": 97.32661734816155, "avg_dollar_vol": 781437600.1292638, "ud_ratio": 2.868613764069954, "acc_weeks": 3, "dist_weeks": 1, "acc_streak": 2, "week_pressure": 0.1468479875987495, "ad_slope": 0.5675746187754986, "pullback_dryness": 0.6836606982947092, "vol_expansion": 1.2329575265667905, "dist_days": 3, "pct_vs_50dma": -0.03851788022796232, "pct_vs_200dma": 0.05451835154858453, "pct_off_high": -0.09032002751358881, "ret_63d": 0.09716180197170043, "score": 84.4, "art_score": 83.7, "art_rank": 0, "ex_mom": 9.7, "pctile": 82.9, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 30.0, "Weekly range + volume": 15.27, "A/D line slope (25d)": 20.0, "Pullback volume drying": 9.91, "Volume expansion": 4.33, "Trend / support": 4.87}, "classification": "Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.923}, {"week": "May 29", "kind": "A", "pos": 0.634}, {"week": "Jun 05", "kind": "-", "pos": 0.401}, {"week": "Jun 12", "kind": "D", "pos": 0.311}, {"week": "Jun 19", "kind": "-", "pos": 0.429}, {"week": "Jun 26", "kind": "-", "pos": 0.307}, {"week": "Jul 03", "kind": "-", "pos": 0.386}, {"week": "Jul 10", "kind": "A", "pos": 0.894}], "rank": 7}, {"ticker": "SYN05", "name": "Synthetic Holdings 05 (sample data)", "sector": "Energy", "sub_industry": "Oil & Gas E&P", "price": 231.4423793727745, "avg_dollar_vol": 2042771294.6677058, "ud_ratio": 1.9922784895124006, "acc_weeks": 4, "dist_weeks": 3, "acc_streak": 3, "week_pressure": 0.18455241829239655, "ad_slope": 0.7275126137191334, "pullback_dryness": 0.63846008958553, "vol_expansion": 1.1869133242652832, "dist_days": 2, "pct_vs_50dma": 0.025925717046855645, "pct_vs_200dma": 0.03343556048742036, "pct_off_high": -0.06301605198571203, "ret_63d": -0.06301605198571203, "score": 82.6, "art_score": 78.7, "art_rank": 0, "ex_mom": 54.6, "pctile": 80.0, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 24.65, "Weekly range + volume": 17.69, "A/D line slope (25d)": 20.0, "Pullback volume drying": 10.0, "Volume expansion": 3.87, "Trend / support": 6.37}, "classification": "Accumulation", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.301}, {"week": "May 29", "kind": "D", "pos": 0.391}, {"week": "Jun 05", "kind": "A", "pos": 0.761}, {"week": "Jun 12", "kind": "-", "pos": 0.31}, {"week": "Jun 19", "kind": "D", "pos": 0.212}, {"week": "Jun 26", "kind": "A", "pos": 0.869}, {"week": "Jul 03", "kind": "A", "pos": 0.943}, {"week": "Jul 10", "kind": "A", "pos": 0.662}], "rank": 8}, {"ticker": "SYN09", "name": "Synthetic Holdings 09 (sample data)", "sector": "Financials", "sub_industry": "Financials Products", "price": 434.0726502003326, "avg_dollar_vol": 4777917238.151161, "ud_ratio": 1.92812218034132, "acc_weeks": 3, "dist_weeks": 2, "acc_streak": 1, "week_pressure": 0.3079693873444627, "ad_slope": 0.61476732131592, "pullback_dryness": 0.7695266736954334, "vol_expansion": 1.1215489355172248, "dist_days": 1, "pct_vs_50dma": 0.005944590657220861, "pct_vs_200dma": 0.2882801577202705, "pct_off_high": -0.05118543253697916, "ret_63d": 0.14012800009903814, "score": 79.5, "art_score": 67.4, "art_rank": 0, "ex_mom": -0.1, "pctile": 77.1, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 100.0, "components": {"Up/down volume (50d)": 23.88, "Weekly range + volume": 16.83, "A/D line slope (25d)": 20.0, "Pullback volume drying": 7.87, "Volume expansion": 3.22, "Trend / support": 7.72}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.826}, {"week": "May 29", "kind": "-", "pos": 0.612}, {"week": "Jun 05", "kind": "-", "pos": 0.514}, {"week": "Jun 12", "kind": "A", "pos": 0.94}, {"week": "Jun 19", "kind": "D", "pos": 0.287}, {"week": "Jun 26", "kind": "-", "pos": 0.381}, {"week": "Jul 03", "kind": "A", "pos": 0.912}, {"week": "Jul 10", "kind": "D", "pos": 0.348}], "rank": 9}, {"ticker": "SYN10", "name": "Synthetic Holdings 10 (sample data)", "sector": "Health Care", "sub_industry": "Pharmaceuticals", "price": 295.41896803357787, "avg_dollar_vol": 1819327971.2203238, "ud_ratio": 2.135247785358788, "acc_weeks": 2, "dist_weeks": 0, "acc_streak": 2, "week_pressure": 0.39509076186198955, "ad_slope": 0.29565739538694324, "pullback_dryness": 0.517314738387179, "vol_expansion": 0.898967594003024, "dist_days": 3, "pct_vs_50dma": -0.01332029640451271, "pct_vs_200dma": -0.10785174978985279, "pct_off_high": -0.23444764270770013, "ret_63d": 3.712177264092453e-05, "score": 75.8, "art_score": 70.6, "art_rank": 0, "ex_mom": 30.6, "pctile": 74.3, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 26.28, "Weekly range + volume": 20.24, "A/D line slope (25d)": 15.59, "Pullback volume drying": 10.0, "Volume expansion": 0.99, "Trend / support": 2.73}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "A", "pos": 0.876}, {"week": "May 29", "kind": "A", "pos": 0.877}, {"week": "Jun 05", "kind": "-", "pos": 0.951}, {"week": "Jun 12", "kind": "-", "pos": 0.843}, {"week": "Jun 19", "kind": "-", "pos": 0.443}, {"week": "Jun 26", "kind": "-", "pos": 0.441}, {"week": "Jul 03", "kind": "-", "pos": 0.372}, {"week": "Jul 10", "kind": "-", "pos": 0.585}], "rank": 10}, {"ticker": "SYN11", "name": "Synthetic Holdings 11 (sample data)", "sector": "Health Care", "sub_industry": "Pharmaceuticals", "price": 330.31335716658623, "avg_dollar_vol": 2026651337.0661457, "ud_ratio": 1.9440263507204527, "acc_weeks": 1, "dist_weeks": 0, "acc_streak": 1, "week_pressure": 0.22129842342903377, "ad_slope": 0.27470684897333725, "pullback_dryness": 0.5269452755286517, "vol_expansion": 0.8538187959161979, "dist_days": 1, "pct_vs_50dma": 0.00564397165012176, "pct_vs_200dma": 0.16992968662657582, "pct_off_high": -0.04202402878108091, "ret_63d": 0.0005556904980523747, "score": 72.0, "art_score": 66.3, "art_rank": 0, "ex_mom": 24.3, "pctile": 71.4, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 24.07, "Weekly range + volume": 15.09, "A/D line slope (25d)": 14.99, "Pullback volume drying": 10.0, "Volume expansion": 0.54, "Trend / support": 7.28}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.39}, {"week": "May 29", "kind": "-", "pos": 0.357}, {"week": "Jun 05", "kind": "A", "pos": 0.984}, {"week": "Jun 12", "kind": "-", "pos": 0.89}, {"week": "Jun 19", "kind": "-", "pos": 0.448}, {"week": "Jun 26", "kind": "-", "pos": 0.854}, {"week": "Jul 03", "kind": "-", "pos": 0.646}, {"week": "Jul 10", "kind": "-", "pos": 0.38}], "rank": 11}, {"ticker": "SYN12", "name": "Synthetic Holdings 12 (sample data)", "sector": "Consumer Discretionary", "sub_industry": "Consumer Discretionary Products", "price": 125.22713041821794, "avg_dollar_vol": 480896588.5230391, "ud_ratio": 1.6866530678546183, "acc_weeks": 2, "dist_weeks": 0, "acc_streak": 1, "week_pressure": 0.3727497194742381, "ad_slope": 0.31020631008608107, "pullback_dryness": 0.5085653755575978, "vol_expansion": 0.8734485101628338, "dist_days": 6, "pct_vs_50dma": -0.03952385686354409, "pct_vs_200dma": 0.09762094738845062, "pct_off_high": -0.09543623159664205, "ret_63d": 0.07560715164586784, "score": 70.8, "art_score": 49.7, "art_rank": 0, "ex_mom": 6.0, "pctile": 68.6, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 100.0, "components": {"Up/down volume (50d)": 20.73, "Weekly range + volume": 18.12, "A/D line slope (25d)": 16.01, "Pullback volume drying": 10.0, "Volume expansion": 0.73, "Trend / support": 5.17}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.809}, {"week": "May 29", "kind": "A", "pos": 0.843}, {"week": "Jun 05", "kind": "-", "pos": 0.973}, {"week": "Jun 12", "kind": "A", "pos": 0.834}, {"week": "Jun 19", "kind": "-", "pos": 0.494}, {"week": "Jun 26", "kind": "-", "pos": 0.941}, {"week": "Jul 03", "kind": "-", "pos": 0.187}, {"week": "Jul 10", "kind": "-", "pos": 0.332}], "rank": 12}, {"ticker": "SYN15", "name": "Synthetic Holdings 15 (sample data)", "sector": "Information Technology", "sub_industry": "Semiconductors", "price": 726.6180205203262, "avg_dollar_vol": 2360530322.8360043, "ud_ratio": 2.3456405915398486, "acc_weeks": 1, "dist_weeks": 0, "acc_streak": 1, "week_pressure": -0.06652630209938651, "ad_slope": 0.3469737561990484, "pullback_dryness": 0.47637854328869617, "vol_expansion": 0.8703057164740394, "dist_days": 4, "pct_vs_50dma": -0.06887301944881652, "pct_vs_200dma": 0.08981177272803964, "pct_off_high": -0.10919934646016871, "ret_63d": 0.01861211105631755, "score": 69.9, "art_score": 70.2, "art_rank": 0, "ex_mom": 17.3, "pctile": 65.7, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 28.5, "Weekly range + volume": 9.34, "A/D line slope (25d)": 17.06, "Pullback volume drying": 10.0, "Volume expansion": 0.7, "Trend / support": 4.33}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.237}, {"week": "May 29", "kind": "-", "pos": 0.458}, {"week": "Jun 05", "kind": "-", "pos": 0.3}, {"week": "Jun 12", "kind": "A", "pos": 0.796}, {"week": "Jun 19", "kind": "-", "pos": 0.349}, {"week": "Jun 26", "kind": "-", "pos": 0.919}, {"week": "Jul 03", "kind": "-", "pos": 0.172}, {"week": "Jul 10", "kind": "-", "pos": 0.278}], "rank": 13}, {"ticker": "SYN16", "name": "Synthetic Holdings 16 (sample data)", "sector": "Materials", "sub_industry": "Materials Products", "price": 323.59357660796576, "avg_dollar_vol": 1297125912.093101, "ud_ratio": 1.235862993591965, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": 0.11886409152122804, "ad_slope": 0.38668128762783627, "pullback_dryness": 0.5405079973914035, "vol_expansion": 0.829007306064756, "dist_days": 3, "pct_vs_50dma": -0.017375484555911425, "pct_vs_200dma": 0.06314945573049369, "pct_off_high": -0.05803502803913063, "ret_63d": 0.019350901725630587, "score": 59.0, "art_score": 32.7, "art_rank": 0, "ex_mom": 4.0, "pctile": 62.9, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 100.0, "components": {"Up/down volume (50d)": 13.4, "Weekly range + volume": 11.38, "A/D line slope (25d)": 18.19, "Pullback volume drying": 10.0, "Volume expansion": 0.29, "Trend / support": 5.71}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.503}, {"week": "May 29", "kind": "-", "pos": 0.194}, {"week": "Jun 05", "kind": "-", "pos": 0.526}, {"week": "Jun 12", "kind": "-", "pos": 0.933}, {"week": "Jun 19", "kind": "-", "pos": 0.4}, {"week": "Jun 26", "kind": "-", "pos": 0.863}, {"week": "Jul 03", "kind": "-", "pos": 0.544}, {"week": "Jul 10", "kind": "-", "pos": 0.635}], "rank": 14}, {"ticker": "SYN13", "name": "Synthetic Holdings 13 (sample data)", "sector": "Materials", "sub_industry": "Materials Products", "price": 405.73734781293257, "avg_dollar_vol": 798281040.1312549, "ud_ratio": 1.0241065129864249, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": -0.049346956576704015, "ad_slope": 0.2826197253304215, "pullback_dryness": 0.5456880154713368, "vol_expansion": 0.8153906914797574, "dist_days": 4, "pct_vs_50dma": -0.0687475903365552, "pct_vs_200dma": 0.0709295029958481, "pct_off_high": -0.14504775013576698, "ret_63d": -0.08338327343803265, "score": 46.2, "art_score": 21.4, "art_rank": 0, "ex_mom": 23.1, "pctile": 60.0, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 80.0, "components": {"Up/down volume (50d)": 8.97, "Weekly range + volume": 8.01, "A/D line slope (25d)": 15.22, "Pullback volume drying": 10.0, "Volume expansion": 0.15, "Trend / support": 3.84}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.718}, {"week": "May 29", "kind": "-", "pos": 0.384}, {"week": "Jun 05", "kind": "-", "pos": 0.289}, {"week": "Jun 12", "kind": "-", "pos": 0.369}, {"week": "Jun 19", "kind": "-", "pos": 0.347}, {"week": "Jun 26", "kind": "-", "pos": 0.515}, {"week": "Jul 03", "kind": "-", "pos": 0.703}, {"week": "Jul 10", "kind": "-", "pos": 0.452}], "rank": 15}, {"ticker": "SYN14", "name": "Synthetic Holdings 14 (sample data)", "sector": "Information Technology", "sub_industry": "Application Software", "price": 371.28756307594756, "avg_dollar_vol": 2742323779.9901276, "ud_ratio": 0.9848843243367148, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": -0.05038493986769607, "ad_slope": 0.2803139557370007, "pullback_dryness": 0.5751604870550282, "vol_expansion": 0.7983137842231283, "dist_days": 3, "pct_vs_50dma": -0.0550076026484303, "pct_vs_200dma": -0.046703750793206655, "pct_off_high": -0.18582514294775765, "ret_63d": -0.08307187087119161, "score": 44.0, "art_score": 21.4, "art_rank": 0, "ex_mom": 18.4, "pctile": 57.1, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 8.05, "Weekly range + volume": 7.99, "A/D line slope (25d)": 15.15, "Pullback volume drying": 10.0, "Volume expansion": 0.0, "Trend / support": 2.77}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.197}, {"week": "May 29", "kind": "-", "pos": 0.907}, {"week": "Jun 05", "kind": "-", "pos": 0.47}, {"week": "Jun 12", "kind": "-", "pos": 0.313}, {"week": "Jun 19", "kind": "-", "pos": 0.538}, {"week": "Jun 26", "kind": "-", "pos": 0.501}, {"week": "Jul 03", "kind": "-", "pos": 0.475}, {"week": "Jul 10", "kind": "-", "pos": 0.363}], "rank": 16}, {"ticker": "SYN20", "name": "Synthetic Holdings 20 (sample data)", "sector": "Financials", "sub_industry": "Financials Products", "price": 210.9987920923376, "avg_dollar_vol": 1381361036.291828, "ud_ratio": 1.495376663473009, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": -0.10485537943157379, "ad_slope": 0.055972723936764446, "pullback_dryness": 0.9915366390053113, "vol_expansion": 0.9985910465584661, "dist_days": 5, "pct_vs_50dma": 0.025287792347668203, "pct_vs_200dma": -0.06106828869683856, "pct_off_high": -0.3539774934364375, "ret_63d": 0.014638678855840359, "score": 41.0, "art_score": 22.1, "art_rank": 0, "ex_mom": -9.1, "pctile": 51.4, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 75.0, "components": {"Up/down volume (50d)": 17.89, "Weekly range + volume": 6.9, "A/D line slope (25d)": 8.74, "Pullback volume drying": 2.58, "Volume expansion": 1.99, "Trend / support": 2.9}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.9}, {"week": "May 29", "kind": "-", "pos": 0.605}, {"week": "Jun 05", "kind": "-", "pos": 0.352}, {"week": "Jun 12", "kind": "-", "pos": 0.103}, {"week": "Jun 19", "kind": "-", "pos": 0.42}, {"week": "Jun 26", "kind": "-", "pos": 0.233}, {"week": "Jul 03", "kind": "-", "pos": 0.53}, {"week": "Jul 10", "kind": "-", "pos": 0.43}], "rank": 17}, {"ticker": "SYN23", "name": "Synthetic Holdings 23 (sample data)", "sector": "Consumer Discretionary", "sub_industry": "Consumer Discretionary Products", "price": 242.9217016048543, "avg_dollar_vol": 467422008.0810822, "ud_ratio": 1.3520133333772406, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": -0.021520847121719117, "ad_slope": -0.012243255824916343, "pullback_dryness": 0.9676771117350925, "vol_expansion": 0.9825701623129042, "dist_days": 5, "pct_vs_50dma": 0.036468323877036024, "pct_vs_200dma": 0.0003536995155375422, "pct_off_high": -0.19731525666510696, "ret_63d": 0.07868626485202013, "score": 41.0, "art_score": 21.2, "art_rank": 0, "ex_mom": -28.7, "pctile": 54.3, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 80.0, "components": {"Up/down volume (50d)": 15.51, "Weekly range + volume": 8.57, "A/D line slope (25d)": 6.79, "Pullback volume drying": 3.15, "Volume expansion": 1.83, "Trend / support": 5.1}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.605}, {"week": "May 29", "kind": "-", "pos": 0.689}, {"week": "Jun 05", "kind": "-", "pos": 0.386}, {"week": "Jun 12", "kind": "-", "pos": 0.578}, {"week": "Jun 19", "kind": "-", "pos": 0.362}, {"week": "Jun 26", "kind": "-", "pos": 0.88}, {"week": "Jul 03", "kind": "-", "pos": 0.198}, {"week": "Jul 10", "kind": "-", "pos": 0.214}], "rank": 18}, {"ticker": "SYN21", "name": "Synthetic Holdings 21 (sample data)", "sector": "Industrials", "sub_industry": "Industrials Products", "price": 333.99109497763015, "avg_dollar_vol": 2471431346.1134744, "ud_ratio": 1.0087372501668153, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": 0.003948066375982967, "ad_slope": 0.021381219918780416, "pullback_dryness": 1.0020146042262579, "vol_expansion": 0.9959313147890709, "dist_days": 6, "pct_vs_50dma": -0.0358877636291437, "pct_vs_200dma": 0.02796090109051974, "pct_off_high": -0.08070583390733665, "ret_63d": 0.032848783974844364, "score": 34.5, "art_score": 6.9, "art_rank": 0, "ex_mom": -25.4, "pctile": 48.6, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 8.61, "Weekly range + volume": 9.08, "A/D line slope (25d)": 7.75, "Pullback volume drying": 2.33, "Volume expansion": 1.96, "Trend / support": 4.79}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.731}, {"week": "May 29", "kind": "-", "pos": 0.195}, {"week": "Jun 05", "kind": "-", "pos": 0.798}, {"week": "Jun 12", "kind": "-", "pos": 0.649}, {"week": "Jun 19", "kind": "-", "pos": 0.163}, {"week": "Jun 26", "kind": "-", "pos": 0.644}, {"week": "Jul 03", "kind": "-", "pos": 0.684}, {"week": "Jul 10", "kind": "-", "pos": 0.182}], "rank": 19}, {"ticker": "SYN18", "name": "Synthetic Holdings 18 (sample data)", "sector": "Materials", "sub_industry": "Materials Products", "price": 117.19808461297423, "avg_dollar_vol": 335932764.6184681, "ud_ratio": 0.9153082234134288, "acc_weeks": 1, "dist_weeks": 1, "acc_streak": 1, "week_pressure": -0.03740510322846602, "ad_slope": 0.03817624686164231, "pullback_dryness": 1.0413827309074695, "vol_expansion": 1.0140565211710197, "dist_days": 8, "pct_vs_50dma": 0.022424859786719598, "pct_vs_200dma": -0.017951497398850047, "pct_off_high": -0.1453292978647548, "ret_63d": 0.084552913663968, "score": 33.1, "art_score": 11.6, "art_rank": 0, "ex_mom": -39.1, "pctile": 45.7, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 60.0, "components": {"Up/down volume (50d)": 6.32, "Weekly range + volume": 9.92, "A/D line slope (25d)": 8.23, "Pullback volume drying": 1.4, "Volume expansion": 2.14, "Trend / support": 5.1}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.603}, {"week": "May 29", "kind": "-", "pos": 0.407}, {"week": "Jun 05", "kind": "-", "pos": 0.725}, {"week": "Jun 12", "kind": "-", "pos": 0.129}, {"week": "Jun 19", "kind": "-", "pos": 0.531}, {"week": "Jun 26", "kind": "D", "pos": 0.138}, {"week": "Jul 03", "kind": "A", "pos": 0.813}, {"week": "Jul 10", "kind": "-", "pos": 0.511}], "rank": 20}, {"ticker": "SYN17", "name": "Synthetic Holdings 17 (sample data)", "sector": "Consumer Discretionary", "sub_industry": "Consumer Discretionary Products", "price": 80.21266293849767, "avg_dollar_vol": 634742016.2132748, "ud_ratio": 0.924009900229869, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": 0.012217836197259154, "ad_slope": 0.11809045507313748, "pullback_dryness": 1.0285193769692447, "vol_expansion": 0.991826759132074, "dist_days": 8, "pct_vs_50dma": -0.02334621836509254, "pct_vs_200dma": -0.07398549513836838, "pct_off_high": -0.2447915923018963, "ret_63d": -0.010550772781347972, "score": 32.6, "art_score": 1.1, "art_rank": 0, "ex_mom": -10.1, "pctile": 42.9, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 60.0, "components": {"Up/down volume (50d)": 6.54, "Weekly range + volume": 9.24, "A/D line slope (25d)": 10.52, "Pullback volume drying": 1.7, "Volume expansion": 1.92, "Trend / support": 2.7}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.607}, {"week": "May 29", "kind": "-", "pos": 0.242}, {"week": "Jun 05", "kind": "-", "pos": 0.764}, {"week": "Jun 12", "kind": "-", "pos": 0.401}, {"week": "Jun 19", "kind": "-", "pos": 0.524}, {"week": "Jun 26", "kind": "-", "pos": 0.494}, {"week": "Jul 03", "kind": "-", "pos": 0.754}, {"week": "Jul 10", "kind": "-", "pos": 0.262}], "rank": 21}, {"ticker": "SYN24", "name": "Synthetic Holdings 24 (sample data)", "sector": "Health Care", "sub_industry": "Life Sciences Tools", "price": 151.9989904860684, "avg_dollar_vol": 618793881.2405157, "ud_ratio": 0.9671440573527071, "acc_weeks": 0, "dist_weeks": 0, "acc_streak": 0, "week_pressure": -0.16873440978386267, "ad_slope": 0.0410632215475589, "pullback_dryness": 1.0359686805634052, "vol_expansion": 0.997804212185018, "dist_days": 4, "pct_vs_50dma": 0.01252042443259671, "pct_vs_200dma": -0.025644082824443082, "pct_off_high": -0.13992701264934926, "ret_63d": -0.024071162678684144, "score": 29.9, "art_score": 7.5, "art_rank": 0, "ex_mom": -10.4, "pctile": 40.0, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 7.62, "Weekly range + volume": 5.63, "A/D line slope (25d)": 8.32, "Pullback volume drying": 1.52, "Volume expansion": 1.98, "Trend / support": 4.87}, "classification": "Neutral / Churn", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.622}, {"week": "May 29", "kind": "-", "pos": 0.162}, {"week": "Jun 05", "kind": "-", "pos": 0.453}, {"week": "Jun 12", "kind": "-", "pos": 0.417}, {"week": "Jun 19", "kind": "-", "pos": 0.213}, {"week": "Jun 26", "kind": "-", "pos": 0.185}, {"week": "Jul 03", "kind": "-", "pos": 0.68}, {"week": "Jul 10", "kind": "-", "pos": 0.61}], "rank": 22}, {"ticker": "SYN22", "name": "Synthetic Holdings 22 (sample data)", "sector": "Materials", "sub_industry": "Materials Products", "price": 49.89212095414055, "avg_dollar_vol": 455545010.65689814, "ud_ratio": 0.9105766114796081, "acc_weeks": 0, "dist_weeks": 1, "acc_streak": 0, "week_pressure": -0.08147680373732868, "ad_slope": 0.021118084895564368, "pullback_dryness": 1.02622963493005, "vol_expansion": 1.0147131265463378, "dist_days": 4, "pct_vs_50dma": -0.05624230248017992, "pct_vs_200dma": -0.04143135660116082, "pct_off_high": -0.154202161997968, "ret_63d": -0.10040503903858078, "score": 28.3, "art_score": 6.6, "art_rank": 0, "ex_mom": 10.1, "pctile": 37.1, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 40.0, "components": {"Up/down volume (50d)": 6.2, "Weekly range + volume": 7.37, "A/D line slope (25d)": 7.75, "Pullback volume drying": 1.76, "Volume expansion": 2.15, "Trend / support": 3.07}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.815}, {"week": "May 29", "kind": "-", "pos": 0.243}, {"week": "Jun 05", "kind": "-", "pos": 0.798}, {"week": "Jun 12", "kind": "-", "pos": 0.274}, {"week": "Jun 19", "kind": "-", "pos": 0.159}, {"week": "Jun 26", "kind": "-", "pos": 0.457}, {"week": "Jul 03", "kind": "D", "pos": 0.333}, {"week": "Jul 10", "kind": "-", "pos": 0.616}], "rank": 23}, {"ticker": "SYN19", "name": "Synthetic Holdings 19 (sample data)", "sector": "Information Technology", "sub_industry": "Application Software", "price": 252.53759815721165, "avg_dollar_vol": 876510548.8094683, "ud_ratio": 0.6554981218173535, "acc_weeks": 1, "dist_weeks": 0, "acc_streak": 1, "week_pressure": -0.11421157827873213, "ad_slope": -0.006179178149737096, "pullback_dryness": 0.9948336625366093, "vol_expansion": 1.011423754269926, "dist_days": 10, "pct_vs_50dma": -0.016472590761951178, "pct_vs_200dma": -0.1713299548530688, "pct_off_high": -0.27607078495088266, "ret_63d": -0.1655792645490768, "score": 22.1, "art_score": 10.5, "art_rank": 0, "ex_mom": 11.3, "pctile": 34.3, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 8.38, "A/D line slope (25d)": 6.97, "Pullback volume drying": 2.5, "Volume expansion": 2.11, "Trend / support": 2.17}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.369}, {"week": "May 29", "kind": "-", "pos": 0.533}, {"week": "Jun 05", "kind": "-", "pos": 0.505}, {"week": "Jun 12", "kind": "-", "pos": 0.162}, {"week": "Jun 19", "kind": "-", "pos": 0.156}, {"week": "Jun 26", "kind": "-", "pos": 0.179}, {"week": "Jul 03", "kind": "-", "pos": 0.852}, {"week": "Jul 10", "kind": "A", "pos": 0.768}], "rank": 24}, {"ticker": "SYN25", "name": "Synthetic Holdings 25 (sample data)", "sector": "Consumer Discretionary", "sub_industry": "Consumer Discretionary Products", "price": 46.280937449568114, "avg_dollar_vol": 622813671.6752305, "ud_ratio": 0.6021198606521863, "acc_weeks": 2, "dist_weeks": 2, "acc_streak": 2, "week_pressure": -0.30038417321636934, "ad_slope": -0.5644636136817658, "pullback_dryness": 1.336583694673902, "vol_expansion": 1.1960467084411641, "dist_days": 8, "pct_vs_50dma": -0.013625105204108423, "pct_vs_200dma": -0.06154988874455347, "pct_off_high": -0.18947849361412705, "ret_63d": 0.025671292179773042, "score": 13.8, "art_score": 12.8, "art_rank": 0, "ex_mom": -43.7, "pctile": 31.4, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 40.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 6.33, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.96, "Trend / support": 3.53}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.482}, {"week": "May 29", "kind": "D", "pos": 0.372}, {"week": "Jun 05", "kind": "D", "pos": 0.048}, {"week": "Jun 12", "kind": "A", "pos": 0.682}, {"week": "Jun 19", "kind": "A", "pos": 0.649}, {"week": "Jun 26", "kind": "-", "pos": 0.48}, {"week": "Jul 03", "kind": "-", "pos": 0.111}, {"week": "Jul 10", "kind": "-", "pos": 0.137}], "rank": 25}, {"ticker": "SYN31", "name": "Synthetic Holdings 31 (sample data)", "sector": "Financials", "sub_industry": "Financials Products", "price": 39.51395046216339, "avg_dollar_vol": 389049661.649934, "ud_ratio": 0.6546958429625391, "acc_weeks": 0, "dist_weeks": 3, "acc_streak": 0, "week_pressure": -0.17951571560965, "ad_slope": -0.6350920588132082, "pullback_dryness": 1.4095208624612796, "vol_expansion": 1.1076846532605662, "dist_days": 7, "pct_vs_50dma": 0.023062562198867154, "pct_vs_200dma": -0.2270488404136477, "pct_off_high": -0.5226489776396239, "ret_63d": -0.047864949373837895, "score": 10.8, "art_score": 1.8, "art_rank": 0, "ex_mom": -22.1, "pctile": 28.6, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 50.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 5.41, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.08, "Trend / support": 2.29}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.772}, {"week": "May 29", "kind": "-", "pos": 0.656}, {"week": "Jun 05", "kind": "D", "pos": 0.104}, {"week": "Jun 12", "kind": "D", "pos": 0.127}, {"week": "Jun 19", "kind": "D", "pos": 0.075}, {"week": "Jun 26", "kind": "-", "pos": 0.614}, {"week": "Jul 03", "kind": "-", "pos": 0.437}, {"week": "Jul 10", "kind": "-", "pos": 0.795}], "rank": 26}, {"ticker": "SYN26", "name": "Synthetic Holdings 26 (sample data)", "sector": "Consumer Discretionary", "sub_industry": "Consumer Discretionary Products", "price": 103.15748913522194, "avg_dollar_vol": 1118172632.6954477, "ud_ratio": 0.5626787533870616, "acc_weeks": 0, "dist_weeks": 3, "acc_streak": 0, "week_pressure": -0.28703117834970393, "ad_slope": -0.7019792705315214, "pullback_dryness": 1.390434605700954, "vol_expansion": 1.167692633275516, "dist_days": 10, "pct_vs_50dma": 0.010002433448156767, "pct_vs_200dma": -0.10052484840220921, "pct_off_high": -0.2946963776687035, "ret_63d": -0.03253552109075475, "score": 9.7, "art_score": 0.8, "art_rank": 0, "ex_mom": -28.1, "pctile": 22.9, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 20.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 3.26, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.68, "Trend / support": 2.76}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.068}, {"week": "May 29", "kind": "D", "pos": 0.369}, {"week": "Jun 05", "kind": "-", "pos": 0.675}, {"week": "Jun 12", "kind": "-", "pos": 0.52}, {"week": "Jun 19", "kind": "-", "pos": 0.442}, {"week": "Jun 26", "kind": "-", "pos": 0.643}, {"week": "Jul 03", "kind": "D", "pos": 0.029}, {"week": "Jul 10", "kind": "-", "pos": 0.498}], "rank": 27}, {"ticker": "SYN30", "name": "Synthetic Holdings 30 (sample data)", "sector": "Financials", "sub_industry": "Financials Products", "price": 44.61762017390412, "avg_dollar_vol": 182578813.60821843, "ud_ratio": 0.5171296246155049, "acc_weeks": 0, "dist_weeks": 3, "acc_streak": 0, "week_pressure": -0.29953249784566055, "ad_slope": -0.5876967773726158, "pullback_dryness": 1.3764306703865365, "vol_expansion": 1.172917794638232, "dist_days": 6, "pct_vs_50dma": 0.052808098795782854, "pct_vs_200dma": -0.170089777787235, "pct_off_high": -0.37062753756902567, "ret_63d": -0.060917276669696485, "score": 9.7, "art_score": 4.2, "art_rank": 0, "ex_mom": -20.8, "pctile": 25.7, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 25.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 3.01, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.73, "Trend / support": 2.95}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.117}, {"week": "May 29", "kind": "-", "pos": 0.691}, {"week": "Jun 05", "kind": "-", "pos": 0.471}, {"week": "Jun 12", "kind": "D", "pos": 0.152}, {"week": "Jun 19", "kind": "-", "pos": 0.723}, {"week": "Jun 26", "kind": "D", "pos": 0.057}, {"week": "Jul 03", "kind": "-", "pos": 0.112}, {"week": "Jul 10", "kind": "-", "pos": 0.788}], "rank": 28}, {"ticker": "SYN29", "name": "Synthetic Holdings 29 (sample data)", "sector": "Industrials", "sub_industry": "Industrials Products", "price": 125.99562860376572, "avg_dollar_vol": 1649712066.338727, "ud_ratio": 0.4422704164570384, "acc_weeks": 1, "dist_weeks": 5, "acc_streak": 1, "week_pressure": -0.5187606801366391, "ad_slope": -0.6298061176379214, "pullback_dryness": 1.3382618643915247, "vol_expansion": 1.1894483123010355, "dist_days": 7, "pct_vs_50dma": 0.016638893741516725, "pct_vs_200dma": -0.1230832026077815, "pct_off_high": -0.36770162595500644, "ret_63d": -0.08402651266343775, "score": 7.7, "art_score": 7.3, "art_rank": 0, "ex_mom": -12.9, "pctile": 20.0, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 1.67, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.89, "Trend / support": 2.15}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.3}, {"week": "May 29", "kind": "D", "pos": 0.085}, {"week": "Jun 05", "kind": "D", "pos": 0.144}, {"week": "Jun 12", "kind": "D", "pos": 0.038}, {"week": "Jun 19", "kind": "-", "pos": 0.551}, {"week": "Jun 26", "kind": "A", "pos": 0.704}, {"week": "Jul 03", "kind": "-", "pos": 0.225}, {"week": "Jul 10", "kind": "D", "pos": 0.312}], "rank": 29}, {"ticker": "SYN34", "name": "Synthetic Holdings 34 (sample data)", "sector": "Materials", "sub_industry": "Materials Products", "price": 74.42622342946643, "avg_dollar_vol": 876575005.1602883, "ud_ratio": 0.381869636513276, "acc_weeks": 1, "dist_weeks": 3, "acc_streak": 1, "week_pressure": -0.6397116875556796, "ad_slope": -0.5686294552511244, "pullback_dryness": 1.2676234380604394, "vol_expansion": 1.1924813899031297, "dist_days": 9, "pct_vs_50dma": -0.06745187114021978, "pct_vs_200dma": -0.20848570841108682, "pct_off_high": -0.43421834733557907, "ret_63d": -0.1843644273654098, "score": 5.9, "art_score": 6.0, "art_rank": 0, "ex_mom": -2.5, "pctile": 17.1, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 20.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 1.67, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.92, "Trend / support": 0.28}, "classification": "Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.059}, {"week": "May 29", "kind": "D", "pos": 0.051}, {"week": "Jun 05", "kind": "A", "pos": 0.645}, {"week": "Jun 12", "kind": "-", "pos": 0.461}, {"week": "Jun 19", "kind": "-", "pos": 0.019}, {"week": "Jun 26", "kind": "-", "pos": 0.543}, {"week": "Jul 03", "kind": "-", "pos": 0.216}, {"week": "Jul 10", "kind": "D", "pos": 0.05}], "rank": 30}, {"ticker": "SYN32", "name": "Synthetic Holdings 32 (sample data)", "sector": "Materials", "sub_industry": "Materials Products", "price": 184.05143862458172, "avg_dollar_vol": 2522646049.1433, "ud_ratio": 0.3005954320826027, "acc_weeks": 0, "dist_weeks": 5, "acc_streak": 0, "week_pressure": -0.474093822806149, "ad_slope": -0.585209270920856, "pullback_dryness": 1.2076802660054884, "vol_expansion": 1.245454680842804, "dist_days": 9, "pct_vs_50dma": -0.03856096153898547, "pct_vs_200dma": -0.15733684632841372, "pct_off_high": -0.31626284125473225, "ret_63d": -0.1929827233161293, "score": 5.8, "art_score": 0.0, "art_rank": 0, "ex_mom": -0.1, "pctile": 14.3, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 0.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 0.0, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 4.45, "Trend / support": 1.32}, "classification": "Heavy Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.213}, {"week": "May 29", "kind": "D", "pos": 0.072}, {"week": "Jun 05", "kind": "D", "pos": 0.205}, {"week": "Jun 12", "kind": "D", "pos": 0.399}, {"week": "Jun 19", "kind": "D", "pos": 0.213}, {"week": "Jun 26", "kind": "-", "pos": 0.637}, {"week": "Jul 03", "kind": "-", "pos": 0.542}, {"week": "Jul 10", "kind": "-", "pos": 0.252}], "rank": 31}, {"ticker": "SYN36", "name": "Synthetic Holdings 36 (sample data)", "sector": "Health Care", "sub_industry": "Pharmaceuticals", "price": 151.0978988973139, "avg_dollar_vol": 720338698.7184485, "ud_ratio": 0.6737901329926167, "acc_weeks": 0, "dist_weeks": 4, "acc_streak": 0, "week_pressure": -0.4230367947291752, "ad_slope": -0.5632861737873531, "pullback_dryness": 1.419908175180062, "vol_expansion": 1.1608257757824323, "dist_days": 6, "pct_vs_50dma": -0.03636726612863894, "pct_vs_200dma": -0.1563713373108393, "pct_off_high": -0.34192992745406825, "ret_63d": -0.03924045686808619, "score": 5.3, "art_score": 0.0, "art_rank": 0, "ex_mom": -30.1, "pctile": 11.4, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 0.54, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.61, "Trend / support": 1.13}, "classification": "Heavy Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "-", "pos": 0.805}, {"week": "May 29", "kind": "-", "pos": 0.598}, {"week": "Jun 05", "kind": "D", "pos": 0.321}, {"week": "Jun 12", "kind": "D", "pos": 0.076}, {"week": "Jun 19", "kind": "-", "pos": 0.502}, {"week": "Jun 26", "kind": "-", "pos": 0.126}, {"week": "Jul 03", "kind": "D", "pos": 0.139}, {"week": "Jul 10", "kind": "D", "pos": 0.063}], "rank": 32}, {"ticker": "SYN33", "name": "Synthetic Holdings 33 (sample data)", "sector": "Consumer Discretionary", "sub_industry": "Consumer Discretionary Products", "price": 20.929614743103777, "avg_dollar_vol": 77654665.37915887, "ud_ratio": 0.4843011526745686, "acc_weeks": 0, "dist_weeks": 5, "acc_streak": 0, "week_pressure": -0.557591932599436, "ad_slope": -0.6547119593510737, "pullback_dryness": 1.4355910481656955, "vol_expansion": 1.1927607241116678, "dist_days": 8, "pct_vs_50dma": -0.06561902996709534, "pct_vs_200dma": -0.15023909263683466, "pct_off_high": -0.27782342831667306, "ret_63d": -0.22104821261374452, "score": 5.0, "art_score": 0.0, "art_rank": 0, "ex_mom": 4.0, "pctile": 8.6, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 0.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 0.0, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.93, "Trend / support": 1.07}, "classification": "Heavy Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.264}, {"week": "May 29", "kind": "-", "pos": 0.581}, {"week": "Jun 05", "kind": "D", "pos": 0.044}, {"week": "Jun 12", "kind": "-", "pos": 0.623}, {"week": "Jun 19", "kind": "D", "pos": 0.124}, {"week": "Jun 26", "kind": "D", "pos": 0.153}, {"week": "Jul 03", "kind": "D", "pos": 0.182}, {"week": "Jul 10", "kind": "-", "pos": 0.431}], "rank": 33}, {"ticker": "SYN27", "name": "Synthetic Holdings 27 (sample data)", "sector": "Financials", "sub_industry": "Financials Products", "price": 35.04927043061042, "avg_dollar_vol": 128094305.21652807, "ud_ratio": 0.29409105178839934, "acc_weeks": 0, "dist_weeks": 8, "acc_streak": 0, "week_pressure": -0.9972320883392788, "ad_slope": -0.6115989043405201, "pullback_dryness": 1.2980618962793458, "vol_expansion": 1.2453316262901502, "dist_days": 10, "pct_vs_50dma": -0.09562297302762757, "pct_vs_200dma": -0.18422599046853083, "pct_off_high": -0.3179423215000754, "ret_63d": -0.21166851420541122, "score": 4.8, "art_score": 0.0, "art_rank": 0, "ex_mom": 1.3, "pctile": 5.7, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": 0.0, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 0.0, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 4.45, "Trend / support": 0.38}, "classification": "Heavy Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.114}, {"week": "May 29", "kind": "D", "pos": 0.078}, {"week": "Jun 05", "kind": "D", "pos": 0.02}, {"week": "Jun 12", "kind": "D", "pos": 0.127}, {"week": "Jun 19", "kind": "D", "pos": 0.221}, {"week": "Jun 26", "kind": "D", "pos": 0.059}, {"week": "Jul 03", "kind": "D", "pos": 0.184}, {"week": "Jul 10", "kind": "D", "pos": 0.028}], "rank": 34}, {"ticker": "SYN35", "name": "Synthetic Holdings 35 (sample data)", "sector": "Health Care", "sub_industry": "Life Sciences Tools", "price": 53.69044786308595, "avg_dollar_vol": 349013308.91964793, "ud_ratio": 0.4115914173420216, "acc_weeks": 0, "dist_weeks": 6, "acc_streak": 0, "week_pressure": -0.7915924588111432, "ad_slope": -0.7117954013852162, "pullback_dryness": 1.3794464777483522, "vol_expansion": 1.2211077245441624, "dist_days": 10, "pct_vs_50dma": -0.10186813217538082, "pct_vs_200dma": -0.1194711358716547, "pct_off_high": -0.31098976179024085, "ret_63d": -0.13200092655978912, "score": 4.7, "art_score": 0.0, "art_rank": 0, "ex_mom": -11.0, "pctile": 2.9, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 0.0, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 4.21, "Trend / support": 0.45}, "classification": "Heavy Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.383}, {"week": "May 29", "kind": "D", "pos": 0.225}, {"week": "Jun 05", "kind": "D", "pos": 0.032}, {"week": "Jun 12", "kind": "-", "pos": 0.444}, {"week": "Jun 19", "kind": "-", "pos": 0.255}, {"week": "Jun 26", "kind": "D", "pos": 0.135}, {"week": "Jul 03", "kind": "D", "pos": 0.039}, {"week": "Jul 10", "kind": "D", "pos": 0.161}], "rank": 35}, {"ticker": "SYN28", "name": "Synthetic Holdings 28 (sample data)", "sector": "Communication Services", "sub_industry": "Communication Services Products", "price": 68.38996556414351, "avg_dollar_vol": 663833057.1583825, "ud_ratio": 0.38978687966992065, "acc_weeks": 0, "dist_weeks": 4, "acc_streak": 0, "week_pressure": -0.6023057590373811, "ad_slope": -0.5284910577579676, "pullback_dryness": 1.194721928094151, "vol_expansion": 1.1738936397623942, "dist_days": 6, "pct_vs_50dma": -0.0641614790677082, "pct_vs_200dma": -0.1941958428739332, "pct_off_high": -0.40151484831440865, "ret_63d": -0.15852567998939227, "score": 4.1, "art_score": 0.0, "art_rank": 0, "ex_mom": -9.2, "pctile": 0.0, "sector_pctile": NaN, "sector_delta": NaN, "sub_pctile": NaN, "components": {"Up/down volume (50d)": 0.0, "Weekly range + volume": 0.0, "A/D line slope (25d)": 0.0, "Pullback volume drying": 0.0, "Volume expansion": 3.74, "Trend / support": 0.35}, "classification": "Heavy Distribution", "churn_flag": false, "gated": false, "week_pattern": [{"week": "May 22", "kind": "D", "pos": 0.039}, {"week": "May 29", "kind": "-", "pos": 0.85}, {"week": "Jun 05", "kind": "D", "pos": 0.044}, {"week": "Jun 12", "kind": "D", "pos": 0.137}, {"week": "Jun 19", "kind": "D", "pos": 0.017}, {"week": "Jun 26", "kind": "-", "pos": 0.752}, {"week": "Jul 03", "kind": "-", "pos": 0.59}, {"week": "Jul 10", "kind": "-", "pos": 0.101}], "rank": 36}]};
+const $ = s => document.querySelector(s);
+const fmtM = v => v>=1e9 ? (v/1e9).toFixed(1)+"B" : v>=1e6 ? (v/1e6).toFixed(0)+"M" : (v/1e3).toFixed(0)+"K";
+const pct = v => (v==null||!isFinite(v)) ? "&mdash;" : (v*100).toFixed(1)+"%";
+const num = (v,d=2) => (v==null||!isFinite(v)) ? "&mdash;" : v.toFixed(d);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+$("#gen").textContent = DATA.generated;
+$("#uni").textContent = DATA.count + " of " + DATA.scanned + " scanned";
+if (DATA.fit && DATA.fit.r2 != null) {
+  const n = document.createElement("p");
+  n.className = "sub";
+  n.style.marginTop = "4px";
+  n.innerHTML = `Score explained by 63-day price momentum alone: <b>R&sup2; ${DATA.fit.r2.toFixed(2)}</b>`
+    + (DATA.gated ? ` &middot; <b>${DATA.gated}</b> name${DATA.gated===1?"":"s"} capped by the A/D gate` : "")
+    + ` &middot; sort by <b>Ex-mom</b> for the part the price hasn't already told you.`;
+  $("#uni").closest("p").after(n);
+}
+
+/* sub-industry clusters — the sharpest form of the concentration problem */
+const SUBC = (DATA.sectors && DATA.sectors.sub_concentration) || [];
+if (SUBC.length) {
+  const box = document.createElement("div");
+  box.className = "warn";
+  box.innerHTML = "<b>Clusters in the top " + DATA.sectors.top_n + ".</b> "
+    + SUBC.map(c => `<b>${esc(c.sub_industry)}</b>: ${c.tickers.slice(0,6).map(esc).join(", ")}`
+        + `${c.tickers.length>6?" …":""} (${c.got} names, ${c.expected} expected)`).join(" · ")
+    + ". Same-sub-industry names move on the same driver — count them as one "
+    + "position, not several. <b>Best N per sub-industry</b> collapses them.";
+  $("#health").after(box);
+}
+
+/* concentration warning — one macro bet wearing several tickers */
+const CONC = (DATA.sectors && DATA.sectors.concentration) || [];
+if (CONC.length) {
+  const box = document.createElement("div");
+  box.className = "warn";
+  box.innerHTML = "<b>Sector concentration in the top " + DATA.sectors.top_n + ".</b> "
+    + CONC.map(c => `<b>${esc(c.sector)}</b> holds ${c.got} places against ${c.expected} expected `
+        + `(${c.ratio}&times;) — ${c.tickers.slice(0,6).map(esc).join(", ")}`
+        + `${c.tickers.length>6?" …":""}`).join(" · ")
+    + ". Names clustered like this usually reflect one macro move rather than several "
+    + "independent institutional decisions. Use <b>Best N per sector</b>, or sort by "
+    + "<b>Sect %ile</b>, to see the list without that tilt.";
+  $("#health").after(box);
+}
+
+/* market health tiles */
+$("#health").innerHTML = DATA.health.map(h => `
+  <div class="tile">
+    <span class="dot bg-${h.state==='good'?'good':h.state==='warning'?'warn':'crit'}"></span>
+    <div>
+      <div class="lbl">${esc(h.label)} &middot; distribution days</div>
+      <div class="big s-${h.state==='good'?'good':h.state==='warning'?'warn':'crit'}">${h.count}
+        <span style="font-size:13px;font-weight:400;color:var(--ink-3)">of last ${DATA.params.dist_day_window}</span></div>
+      <div class="note">${esc(h.note)}</div>
+    </div>
+  </div>`).join("") || '<div class="tile"><div class="note">Index data unavailable.</div></div>';
+
+/* filters */
+const BANDS = ["All","Strong Accumulation","Accumulation","Neutral / Churn","Distribution","Heavy Distribution"];
+let band = "All", sector = "All", query = "", sortKey = "score", sortDir = -1,
+    perSector = 0, perSub = 0;
+
+$("#chips").innerHTML = BANDS.map(b =>
+  `<button class="chip" data-b="${esc(b)}" aria-pressed="${b===band}">${esc(b)}</button>`).join("");
+$("#chips").onclick = e => {
+  const b = e.target.closest(".chip"); if(!b) return;
+  band = b.dataset.b;
+  [...$("#chips").children].forEach(c => c.setAttribute("aria-pressed", c.dataset.b===band));
+  render();
+};
+const sectors = ["All", ...new Set(DATA.rows.map(r => r.sector).filter(s => s && s!=="Unknown"))].sort((a,b)=>a==="All"?-1:b==="All"?1:a.localeCompare(b));
+$("#sector").innerHTML = sectors.map(s => `<option>${esc(s)}</option>`).join("");
+$("#sector").onchange = e => { sector = e.target.value; render(); };
+$("#persector").onchange = e => { perSector = +e.target.value; render(); };
+$("#persub").onchange = e => { perSub = +e.target.value; render(); };
+$("#q").oninput = e => { query = e.target.value.trim().toLowerCase(); render(); };
+
+document.querySelectorAll("thead th").forEach(th => th.onclick = () => {
+  const k = th.dataset.k;
+  if (k === sortKey) sortDir *= -1;
+  else { sortKey = k; sortDir = (k==="rank"||k==="ticker"||k==="pct_off_high") ? 1 : -1; }
+  render();
+});
+
+function strip(p){
+  return '<span class="strip">' + (p||[]).map(w =>
+    `<span class="cell ${w.kind==='A'?'a':w.kind==='D'?'d':''}" title="${esc(w.week)} — closed ${(w.pos*100).toFixed(0)}% up its range">${w.kind==='-'?'':w.kind}</span>`).join("") + '</span>';
+}
+
+function verdict(r){
+  let base;
+  if (r.gated) base = "Ranked high on the composite, but its A/D line is falling and the label was capped — the components that scored well outvoted the one that most directly measures accumulation. Treat it as unresolved, not as a buy signal.";
+  else if (r.churn_flag) base = "Heavy volume with no price progress — churn. Big money is trading it, but neither side is winning. Wait for the range to break.";
+  else if (/Strong Accum/.test(r.classification)) base = "Textbook accumulation: up-volume dominant, repeated heavy-volume closes high in the weekly range, support holding.";
+  else if (/Accumulation/.test(r.classification)) base = "Accumulation showing, but not on every component. Check which pieces are carrying the score.";
+  else if (/Neutral/.test(r.classification)) base = "Mixed. Institutional footprints are inconclusive here.";
+  else if (/Heavy Distribution/.test(r.classification)) base = "Heavy distribution. Down-day volume dominates and the range closes are weak.";
+  else base = "Distribution signs: supply is being fed into demand on heavy volume.";
+
+  if (isFinite(r.ex_mom)) {
+    if (r.ex_mom >= 8) base += " Its footprint is well ahead of what the price has done — the kind of setup this screen exists to find.";
+    else if (r.ex_mom <= -8) base += " Most of the score here is the price move itself; the volume evidence is thinner than the rank suggests.";
+  }
+  return base;
+}
+
+function panel(r){
+  const max = {"Up/down volume (50d)":30,"Weekly range + volume":25,"A/D line slope (25d)":20,
+               "Pullback volume drying":10,"Volume expansion":5,"Trend / support":10};
+  const comps = Object.entries(r.components).map(([k,v]) => `
+    <div class="lab">${esc(k)}</div><div class="val">${v.toFixed(1)} <span style="color:var(--ink-3);font-weight:400">/ ${max[k]??''}</span></div>
+    <div class="track"><i style="width:${Math.max(0,Math.min(100,100*v/(max[k]||1)))}%"></i></div>`).join("");
+  const wk = (r.week_pattern||[]).map(w => `
+    <div class="col">
+      <div class="mark ${w.kind==='A'?'a':w.kind==='D'?'d':''}" style="height:${Math.max(4,w.pos*62)}px"
+           title="closed ${(w.pos*100).toFixed(0)}% up its range"></div>
+      <div class="tick">${esc(w.week.split(" ")[1])}</div>
+    </div>`).join("");
+  return `<div class="panel">
+    <div>
+      <h4>Score components</h4>
+      <div class="comp">${comps}</div>
+      <div class="verdict">${esc(verdict(r))}</div>
+    </div>
+    <div>
+      <h4>Where it closed in its weekly range &mdash; last ${(r.week_pattern||[]).length} weeks</h4>
+      <div class="wk">${wk}</div>
+      <div class="tick" style="margin-top:6px">Bar height = where the week closed in its
+        range. <b style="color:var(--good-ink)">Green</b> = accumulation week (high close,
+        heavy volume) &middot; <b style="color:var(--crit-ink)">red</b> = distribution week
+        &middot; blue = ordinary volume.</div>
+      <dl class="kv">
+        <dt>Article-only score</dt><dd>${isFinite(r.art_score)?r.art_score.toFixed(1)+(r.art_rank?" (rank "+r.art_rank+")":""):"&mdash;"}</dd>
+        <dt>Rank within this scan</dt><dd>${isFinite(r.pctile)?r.pctile.toFixed(0)+"th percentile":"&mdash;"}</dd>
+        <dt>Rank within ${esc(r.sub_industry&&r.sub_industry!=="Unknown"?r.sub_industry:"its sub-industry")}</dt><dd>${isFinite(r.sub_pctile)?r.sub_pctile.toFixed(0)+"th percentile":"&mdash;"}</dd>
+        <dt>Rank within ${esc(r.sector||"its sector")}</dt><dd>${isFinite(r.sector_pctile)?r.sector_pctile.toFixed(0)+"th percentile":"&mdash;"}${isFinite(r.sector_delta)?` (${r.sector_delta>0?"+":""}${r.sector_delta.toFixed(1)} vs sector median)`:""}</dd>
+        <dt>Avg daily dollar volume</dt><dd>$${fmtM(r.avg_dollar_vol)}</dd>
+        <dt>Ex-momentum (score vs price action)</dt><dd class="${r.ex_mom>0?'pos':r.ex_mom<0?'neg':''}">${isFinite(r.ex_mom)?(r.ex_mom>0?"+":"")+r.ex_mom.toFixed(1)+" pts":"&mdash;"}</dd>
+        <dt>Weekly pressure (&minus;2 to +2)</dt><dd>${num(r.week_pressure)}</dd>
+        <dt>Up/down volume (50d)</dt><dd>${num(r.ud_ratio)}</dd>
+        <dt>Accumulation weeks</dt><dd>${r.acc_weeks} (longest run ${r.acc_streak})</dd>
+        <dt>Distribution weeks</dt><dd>${r.dist_weeks}</dd>
+        <dt>Pullback volume vs 50d avg</dt><dd>${num(r.pullback_dryness)}&times;</dd>
+        <dt>Volume expansion (50d/200d)</dt><dd>${num(r.vol_expansion)}&times;</dd>
+        <dt>vs 50-day avg</dt><dd>${pct(r.pct_vs_50dma)}</dd>
+        <dt>vs 200-day avg</dt><dd>${pct(r.pct_vs_200dma)}</dd>
+        <dt>63-day return</dt><dd>${pct(r.ret_63d)}</dd>
+      </dl>
+    </div>
+  </div>`;
+}
+
+function render(){
+  let rows = DATA.rows.filter(r =>
+    (band==="All" || r.classification===band) &&
+    (sector==="All" || r.sector===sector) &&
+    (!query || r.ticker.toLowerCase().includes(query) || (r.name||"").toLowerCase().includes(query))
+  ).sort((a,b) => {
+    const x=a[sortKey], y=b[sortKey];
+    if (typeof x === "string") return sortDir * x.localeCompare(y);
+    const xv = (x==null||!isFinite(x)) ? -1e18 : x, yv = (y==null||!isFinite(y)) ? -1e18 : y;
+    return sortDir * (xv - yv);
+  });
+
+  // Cap per sector AFTER sorting, so "best 2 per sector" means best by whatever
+  // column is currently sorted — score, ex-momentum, or anything else.
+  if (perSector > 0) {
+    const seen = {};
+    rows = rows.filter(r => {
+      const s = r.sector || "Unknown";
+      seen[s] = (seen[s] || 0) + 1;
+      return seen[s] <= perSector;
+    });
+  }
+  if (perSub > 0) {
+    const seen = {};
+    rows = rows.filter(r => {
+      const s = r.sub_industry || "Unknown";
+      if (s === "Unknown") return true;
+      seen[s] = (seen[s] || 0) + 1;
+      return seen[s] <= perSub;
+    });
+  }
+
+  $("#count").textContent = rows.length + " stocks"
+    + (perSector ? ` · best ${perSector} per sector` : "");
+  $("#empty").hidden = rows.length > 0;
+  document.querySelectorAll("thead th").forEach(th => {
+    th.querySelector(".arw").textContent = th.dataset.k===sortKey ? (sortDir>0?" ▲":" ▼") : "";
+  });
+
+  $("#tb").innerHTML = rows.map(r => `
+    <tr class="row" data-t="${esc(r.ticker)}">
+      <td class="l" style="color:var(--ink-3)">${r.rank}</td>
+      <td class="l"><span class="tk">${esc(r.ticker)}</span><span class="nm">${esc(r.name||"")}</span></td>
+      <td><div class="scorecell"><div class="bar"><i style="width:${Math.max(2,r.score)}%"></i></div>
+          <span class="scoreval">${r.score.toFixed(0)}</span></div></td>
+      <td><span class="pill ${/Accum/.test(r.classification)?'pos':/Distrib/.test(r.classification)?'neg':''}"
+          title="${r.gated?'Capped by the A/D gate — labelled accumulation while its A/D line was falling':''}">${r.churn_flag?'Churn':esc(r.classification.replace(' / Churn',''))}${r.gated?' •':''}</span></td>
+      <td class="${r.ex_mom>0?'pos':r.ex_mom<0?'neg':''}">${r.ex_mom==null||!isFinite(r.ex_mom)?"&mdash;":(r.ex_mom>0?"+":"")+r.ex_mom.toFixed(1)}</td>
+      <td title="${r.art_rank?'article rank '+r.art_rank:''}">${isFinite(r.art_score)?r.art_score.toFixed(0):"&mdash;"}</td>
+      <td>${num(r.ud_ratio)}</td>
+      <td class="l">${strip(r.week_pattern)}</td>
+      <td>${num(r.ad_slope)}</td>
+      <td>${r.dist_days}</td>
+      <td>$${num(r.price)}</td>
+      <td>${pct(r.pct_off_high)}</td>
+      <td>${isFinite(r.sector_pctile)?r.sector_pctile.toFixed(0):"&mdash;"}</td>
+    </tr>`).join("");
+}
+
+$("#tb").onclick = e => {
+  const tr = e.target.closest("tr.row"); if(!tr) return;
+  const nxt = tr.nextElementSibling;
+  if (nxt && nxt.classList.contains("detail")) { nxt.remove(); return; }
+  document.querySelectorAll("tr.detail").forEach(d => d.remove());
+  const r = DATA.rows.find(x => x.ticker === tr.dataset.t);
+  const d = document.createElement("tr");
+  d.className = "detail";
+  d.innerHTML = `<td colspan="13">${panel(r)}</td>`;
+  tr.after(d);
+};
+
+$("#theme").onclick = () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const dark = cur ? cur === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+};
+
+render();
+</script>
+</body>
+</html>
